@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+menu "Hobbsless Configuration"
+
+    config SNTP_TIME_SERVER
+        string "SNTP server name"
+        default "pool.ntp.org"
+        help
+            Hostname of the main SNTP server.
+
+endmenu
+

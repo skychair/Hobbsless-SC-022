@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- (C) Skychair 2026 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hobbsless Configurator</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --panel-2: #fbfcfe;
+    --ink: #16202e;
+    --ink-soft: #5b6b7f;
+    --line: #dfe5ec;
+    --accent: #1f6feb;
+    --accent-ink: #ffffff;
+    --ok: #17864b;
+    --ok-bg: #e6f5ec;
+    --warn: #9a6400;
+    --warn-bg: #fdf3e0;
+    --err: #b3261e;
+    --err-bg: #fdecea;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(16,30,54,.06), 0 6px 18px rgba(16,30,54,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141b;
+      --panel: #171e27;
+      --panel-2: #1c242f;
+      --ink: #e7edf4;
+      --ink-soft: #9aa9bb;
+      --line: #2a3542;
+      --accent: #4d90f0;
+      --accent-ink: #08111d;
+      --ok: #4cc38a;
+      --ok-bg: #12291f;
+      --warn: #e0b25c;
+      --warn-bg: #2b2415;
+      --err: #f2837a;
+      --err-bg: #2e1917;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 24px 18px 72px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .logo {
+    width: 42px; height: 42px; border-radius: 11px; flex: none;
+    background: linear-gradient(150deg, var(--accent), #7b4df0);
+    display: grid; place-items: center; color: #fff; font-size: 21px;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--ink-soft); font-size: 13px; margin-top: 1px; }
+  .spacer { flex: 1 1 auto; }
+
+  /* ---------- connection bar ---------- */
+  .connbar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #97a4b4; flex: none; }
+  .dot.on  { background: var(--ok);  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 20%, transparent); }
+  .dot.busy{ background: var(--warn); animation: pulse 1s infinite; }
+  .dot.err { background: var(--err); }
+  @keyframes pulse { 50% { opacity: .3; } }
+  #connText { font-weight: 600; }
+  #connSub { color: var(--ink-soft); font-size: 13px; }
+
+  /* ---------- buttons ---------- */
+  button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: 9px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink);
+    padding: 9px 15px; transition: filter .12s, opacity .12s;
+  }
+  button:hover:not(:disabled) { filter: brightness(.97); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.danger  { background: transparent; border-color: color-mix(in srgb, var(--err) 45%, transparent); color: var(--err); }
+  button.danger:hover:not(:disabled) { background: var(--err-bg); }
+  button.small { padding: 6px 11px; font-size: 13px; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .card > h2 {
+    font-size: 14px; margin: 0; padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--line); letter-spacing: .01em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card > h2 .ic { font-size: 15px; }
+  .card > h2 .hint { font-weight: 400; color: var(--ink-soft); font-size: 12.5px; margin-left: auto; }
+  .card-body { padding: 16px; }
+
+  .field { margin-bottom: 15px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 5px; }
+  .desc { color: var(--ink-soft); font-size: 12.5px; margin: -2px 0 7px; }
+  input[type=text], input[type=password], input[type=number], select {
+    font: inherit; width: 100%; padding: 9px 11px;
+    border: 1px solid var(--line); border-radius: 9px;
+    background: var(--panel-2); color: var(--ink);
+  }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 1px; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row > input { flex: 1 1 auto; min-width: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  @media (max-width: 620px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .readout { color: var(--ink-soft); font-size: 12.5px; min-height: 1.2em; margin-top: 5px; }
+  .readout.ok  { color: var(--ok); }
+  .readout.err { color: var(--err); }
+
+  /* toggle */
+  .toggle { display: flex; align-items: center; gap: 11px; cursor: pointer; user-select: none; }
+  .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .track {
+    width: 42px; height: 24px; border-radius: 12px; flex: none;
+    background: #9aa9bb33; border: 1px solid var(--line); position: relative; transition: background .15s;
+  }
+  .track::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s;
+  }
+  .toggle input:checked + .track { background: var(--accent); border-color: var(--accent); }
+  .toggle input:checked + .track::after { transform: translateX(18px); }
+  .toggle input:disabled + .track { opacity: .45; }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ---------- notice / log ---------- */
+  .notice {
+    border-radius: var(--radius); padding: 13px 15px; margin-bottom: 16px;
+    font-size: 13.5px; border: 1px solid transparent;
+  }
+  .notice.warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 35%, transparent); color: var(--warn); }
+  .notice.err  { background: var(--err-bg);  border-color: color-mix(in srgb, var(--err) 35%, transparent);  color: var(--err); }
+  .notice b { display: block; margin-bottom: 3px; }
+  .notice code { background: #8881; padding: 1px 5px; border-radius: 4px; }
+
+  details.logcard summary {
+    cursor: pointer; font-size: 14px; font-weight: 600; padding: 14px 16px;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+  }
+  details.logcard summary::-webkit-details-marker { display: none; }
+  details.logcard summary::before { content: "▸"; color: var(--ink-soft); }
+  details.logcard[open] summary::before { content: "▾"; }
+  #log {
+    font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--panel-2); border-top: 1px solid var(--line);
+    padding: 12px 16px; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  #log .t  { color: var(--ink-soft); }
+  #log .tx { color: var(--accent); }
+  #log .rx { color: var(--ok); }
+  #log .er { color: var(--err); }
+
+  .footnote { color: var(--ink-soft); font-size: 12.5px; text-align: center; margin-top: 22px; }
+
+  /* toast */
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+    background: var(--ink); color: var(--bg); padding: 11px 18px; border-radius: 10px;
+    font-size: 14px; font-weight: 600; box-shadow: var(--shadow);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #toast.err { background: var(--err); color: #fff; }
+
+  [hidden] { display: none !important; }
+  fieldset { border: 0; padding: 0; margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">📡</div>
+    <div>
+      <h1>Hobbsless Configurator</h1>
+      <div class="sub">Set up your vibration sensor over Bluetooth</div>
+    </div>
+  </header>
+
+  <div class="notice err" id="unsupported" hidden>
+    <b>This browser can't talk to Bluetooth devices.</b>
+    Web Bluetooth is supported in Chrome, Edge, and Opera on desktop and Android.
+    Safari and Firefox are not supported. The page must also be opened over
+    <code>https://</code> or from <code>localhost</code>.
+  </div>
+
+  <div class="connbar">
+    <span class="dot" id="dot"></span>
+    <div>
+      <div id="connText">Not connected</div>
+      <div id="connSub">Wake the sensor, then click Connect.</div>
+    </div>
+    <span class="spacer"></span>
+    <button class="primary" id="btnConnect">Connect</button>
+    <button id="btnDisconnect" disabled>Disconnect</button>
+  </div>
+
+  <div class="notice warn" id="rebootNotice" hidden>
+    <b>Sensor is restarting.</b>
+    It reboots to apply saved settings, and only listens for Bluetooth for a short window after
+    each wake-up. Wake it again to reconnect.
+  </div>
+
+  <fieldset id="panels" disabled>
+
+    <!-- ---------- Wi-Fi ---------- -->
+    <div class="card">
+      <h2><span class="ic">📶</span> Wi-Fi Network
+        <span class="hint">used to sync time and upload data</span>
+      </h2>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="field">
+            <label for="ssid">Network name (SSID)</label>
+            <input type="text" id="ssid" maxlength="32" autocomplete="off" spellcheck="false" placeholder="MyNetwork">
+          </div>
+          <div class="field">
+            <label for="psk">Password</label>
+            <div class="row">
+              <input type="password" id="psk" maxlength="64" autocomplete="off" spellcheck="false" placeholder="••••••••">
+              <button class="small" id="btnShowPsk" type="button" title="Show password">👁</button>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="btnSaveWifi">Save Wi-Fi</button>
+          <button id="btnTestWifi">Test connection</button>
+        </div>
+        <div class="readout" id="wifiOut"></div>
+      </div>
+    </div>
+
+    <!-- ---------- Schedule ---------- -->
+    <div class="card">
+      <h2><span class="ic">⏱</span> Reporting Schedule</h2>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="field">
+            <label for="pubFreq">Upload every</label>
+            <div class="desc" id="pubFreqDesc">How often the sensor wakes to upload data. 1-336 hours.</div>
+            <div class="row">
+              <input type="number" id="pubFreq" min="1" max="336" step="1" placeholder="24">
+              <span style="color:var(--ink-soft);font-size:13px">hours</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="engInterval">Engine monitor interval</label>
+            <div class="desc">How often it checks for engine vibration while running. 1-60 minutes.</div>
+            <div class="row">
+              <input type="number" id="engInterval" min="1" max="60" step="1" placeholder="5">
+              <span style="color:var(--ink-soft);font-size:13px">minutes</span>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="toggle">
+            <input type="checkbox" id="pfu"><span class="track"></span>
+            <span>Upload immediately after each flight</span>
+          </label>
+          <div class="desc" style="margin-top:6px">
+            When on, the sensor uploads as soon as it detects the engine has stopped,
+            instead of waiting for the next scheduled upload.
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="btnSaveSched">Save Schedule</button>
+        </div>
+        <div class="readout" id="schedOut"></div>
+      </div>
+    </div>
+
+    <!-- ---------- Engine detection ---------- -->
+    <div class="card">
+      <h2><span class="ic">📈</span> Engine Detection</h2>
+      <div class="card-body">
+        <div class="field">
+          <label for="eds">Vibration samples per check</label>
+          <div class="desc">
+            When a bump wakes the sensor, it takes this many vibration samples about 1.6 seconds
+            apart. More than half must show engine vibration to count as a run. More samples
+            reject bumps and knocks better but take longer. 3-30 samples.
+          </div>
+          <div class="row" style="max-width:280px">
+            <input type="number" id="eds" min="3" max="30" step="1" placeholder="10">
+            <span style="color:var(--ink-soft);font-size:13px">samples</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="btnSaveEds">Save Detection</button>
+        </div>
+        <div class="readout" id="edsOut"></div>
+      </div>
+    </div>
+
+    <!-- ---------- Advanced ---------- -->
+    <div class="card">
+      <h2><span class="ic">⚙️</span> Bluetooth Window</h2>
+      <div class="card-body">
+        <div class="field">
+          <label for="bld">Stay discoverable for</label>
+          <div class="desc">
+            How long the sensor advertises after waking before it goes back to sleep.
+            Longer windows use more battery. 30-600 seconds.
+          </div>
+          <div class="row" style="max-width:280px">
+            <input type="number" id="bld" min="30" max="600" step="1" placeholder="60">
+            <span style="color:var(--ink-soft);font-size:13px">seconds</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="btnSaveBld">Save Window</button>
+        </div>
+        <div class="readout" id="bldOut"></div>
+      </div>
+    </div>
+
+    <!-- ---------- Device actions ---------- -->
+    <div class="card">
+      <h2><span class="ic">🛠</span> Device</h2>
+      <div class="card-body">
+        <div class="field">
+          <label>Firmware version</label>
+          <div class="readout" id="fwOut">-</div>
+        </div>
+        <div class="actions">
+          <button id="btnRefresh">↻ Reload settings from sensor</button>
+          <button id="btnUploadNow">Upload now</button>
+          <button id="btnOta">Check for firmware update</button>
+          <button id="btnReboot">Restart sensor</button>
+          <button class="danger" id="btnFactory">Factory reset</button>
+        </div>
+        <div class="readout" id="devOut"></div>
+      </div>
+    </div>
+
+  </fieldset>
+
+  <details class="card logcard">
+    <summary>Activity log</summary>
+    <div id="log"></div>
+  </details>
+
+  <div class="footnote">Hobbsless SC-022 · service 0xDEAD / characteristic 0xBEEF</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ */
+/* BLE constants - must match main/ble_spp_server.h                    */
+/* ------------------------------------------------------------------ */
+const SPP_SERVICE_UUID = 0xdead;
+const SPP_CHAR_UUID    = 0xbeef;
+const NAME_PREFIX      = "Hobbsless";
+
+/* Firmware limits - must match main/defs.h */
+const LIMITS = {
+  pubFreq:     { min: 1,  max: 336, label: "Upload interval" },
+  bld:         { min: 30, max: 600, label: "Bluetooth window" },
+  engInterval: { min: 1,  max: 60,  label: "Engine monitor interval" },
+  eds:         { min: 3,  max: 30,  label: "Vibration samples" },
+};
+
+/* ------------------------------------------------------------------ */
+/* Tiny DOM helpers                                                    */
+/* ------------------------------------------------------------------ */
+const $ = (id) => document.getElementById(id);
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+function log(kind, msg) {
+  const el = $("log");
+  const t = new Date().toLocaleTimeString();
+  const line = document.createElement("div");
+  line.innerHTML =
+    `<span class="t">${t}</span> <span class="${kind}">${escapeHtml(msg)}</span>`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+let toastTimer = null;
+function toast(msg, isErr) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.classList.toggle("err", !!isErr);
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function readout(id, msg, kind) {
+  const el = $(id);
+  el.textContent = msg || "";
+  el.className = "readout" + (kind ? " " + kind : "");
+}
+
+function setStatus(state, text, sub) {
+  $("dot").className = "dot" + (state ? " " + state : "");
+  $("connText").textContent = text;
+  $("connSub").textContent = sub || "";
+}
+
+/* ------------------------------------------------------------------ */
+/* BLE transport                                                       */
+/* ------------------------------------------------------------------ */
+let device = null;
+let characteristic = null;
+let pending = null;          // { isGet, resolve, reject, timer }
+let queue = Promise.resolve(); // serializes commands - one in flight at a time
+
+function isConnected() {
+  return !!(device && device.gatt && device.gatt.connected && characteristic);
+}
+
+function onNotify(event) {
+  const bytes = new Uint8Array(event.target.value.buffer);
+  if (!pending) {
+    log("rx", "<< unsolicited: " + describe(bytes));
+    return;
+  }
+  const p = pending;
+  pending = null;
+  clearTimeout(p.timer);
+
+  if (p.isGet) {
+    const text = dec.decode(bytes).replace(/\0+$/, "");
+    log("rx", "<< " + JSON.stringify(text));
+    p.resolve({ ok: true, text });
+  } else {
+    const ack = bytes.length ? bytes[0] : 0;
+    log("rx", "<< ACK " + ack + (ack === 1 ? " (success)" : " (failure)"));
+    p.resolve({ ok: ack === 1, ack });
+  }
+}
+
+function describe(bytes) {
+  const printable = [...bytes].every((b) => b >= 0x20 && b < 0x7f);
+  return printable ? JSON.stringify(dec.decode(bytes))
+                   : "0x" + [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Send one `C|arg` command and wait for the device's reply.
+ * Get commands (`g|*`) reply with a UTF-8 string notification.
+ * Everything else replies with a single ACK byte (1 = ok, 0 = fail).
+ * `expectReply: false` is for commands that reboot the device before
+ * the firmware can answer (r|1, v|1, x|1, o|1).
+ */
+function send(cmd, opts) {
+  opts = opts || {};
+  const timeoutMs = opts.timeoutMs || 3000;
+  const expectReply = opts.expectReply !== false;
+
+  const run = async () => {
+    if (!isConnected()) throw new Error("Not connected");
+    const isGet = cmd.startsWith("g|");
+    log("tx", ">> " + (opts.redact ? cmd.slice(0, 2) + "••••••" : cmd));
+    const payload = enc.encode(cmd);
+
+    if (!expectReply) {
+      await characteristic.writeValueWithResponse(payload).catch(() => {});
+      return { ok: true, fireAndForget: true };
+    }
+
+    return await new Promise((resolve, reject) => {
+      pending = {
+        isGet,
+        resolve,
+        reject,
+        timer: setTimeout(() => {
+          pending = null;
+          log("er", "!! timeout waiting for reply to " + cmd);
+          reject(new Error("The sensor didn't reply in time."));
+        }, timeoutMs),
+      };
+      characteristic.writeValueWithResponse(payload).catch((e) => {
+        if (pending) { clearTimeout(pending.timer); pending = null; }
+        reject(e);
+      });
+    });
+  };
+
+  // Chain onto the queue so writes never overlap.
+  const result = queue.then(run, run);
+  queue = result.catch(() => {});
+  return result;
+}
+
+/* ------------------------------------------------------------------ */
+/* Connect / disconnect                                                */
+/* ------------------------------------------------------------------ */
+async function connect() {
+  try {
+    setStatus("busy", "Choosing a sensor...", "Pick your device in the browser prompt.");
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: NAME_PREFIX }],
+      optionalServices: [SPP_SERVICE_UUID],
+    });
+    $("rebootNotice").hidden = true;
+    device.addEventListener("gattserverdisconnected", onDisconnected);
+
+    setStatus("busy", "Connecting...", device.name || "");
+    log("t", "Connecting to " + (device.name || device.id));
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SPP_SERVICE_UUID);
+    characteristic = await service.getCharacteristic(SPP_CHAR_UUID);
+    await characteristic.startNotifications();
+    characteristic.addEventListener("characteristicvaluechanged", onNotify);
+
+    setStatus("on", "Connected", device.name || "");
+    $("panels").disabled = false;
+    $("btnDisconnect").disabled = false;
+    $("btnConnect").disabled = true;
+    log("t", "Connected, notifications enabled");
+    toast("Connected to " + (device.name || "sensor"));
+
+    await refreshAll();
+  } catch (err) {
+    if (err && err.name === "NotFoundError") {
+      // User dismissed the chooser, or nothing was advertising.
+      setStatus("", "Not connected", "No sensor selected. Wake it and try again.");
+      log("t", "Device chooser cancelled / no device found");
+    } else {
+      setStatus("err", "Connection failed", (err && err.message) || String(err));
+      log("er", "Connect failed: " + ((err && err.message) || err));
+      toast("Connection failed", true);
+    }
+    cleanup();
+  }
+}
+
+function onDisconnected() {
+  log("t", "Device disconnected");
+  if (pending) { clearTimeout(pending.timer); pending.resolve({ ok: true, disconnected: true }); pending = null; }
+  cleanup();
+  setStatus("", "Not connected", "The sensor disconnected.");
+}
+
+function cleanup() {
+  if (characteristic) {
+    characteristic.removeEventListener("characteristicvaluechanged", onNotify);
+  }
+  characteristic = null;
+  $("panels").disabled = true;
+  $("btnDisconnect").disabled = true;
+  $("btnConnect").disabled = false;
+}
+
+function disconnect() {
+  if (device && device.gatt && device.gatt.connected) {
+    log("t", "Disconnecting");
+    device.gatt.disconnect();   // triggers onDisconnected
+  } else {
+    cleanup();
+    setStatus("", "Not connected", "");
+  }
+  showRebootNotice();
+}
+
+function showRebootNotice() {
+  $("rebootNotice").hidden = false;
+}
+
+/* ------------------------------------------------------------------ */
+/* Reading settings                                                    */
+/* ------------------------------------------------------------------ */
+async function get(sub) {
+  const r = await send("g|" + sub);
+  return r.text !== undefined ? r.text : "";
+}
+
+/**
+ * A never-set SSID or passphrase makes the firmware notify a zero-length
+ * value, which some stacks swallow entirely - that read then times out.
+ * Read each setting independently so one silent field doesn't abort the rest.
+ */
+async function getSafe(sub, fallback) {
+  try {
+    return await get(sub);
+  } catch (err) {
+    log("er", "g|" + sub + " failed: " + (err.message || err));
+    return fallback;
+  }
+}
+
+async function refreshAll() {
+  if (!isConnected()) return;
+  readout("devOut", "Reading settings...");
+
+  $("fwOut").textContent = (await getSafe("v", "")) || "unknown";
+  $("pubFreq").value     = await getSafe("pf", "");
+  describePubFreq();
+  $("bld").value         = await getSafe("bld", "");
+  $("engInterval").value = await getSafe("emi", "");
+  $("eds").value         = await getSafe("eds", "");
+  $("pfu").checked       = (await getSafe("pfu", "0")).trim() === "1";
+  $("ssid").value        = await getSafe("s", "");
+  $("psk").value         = await getSafe("p", "");
+
+  if (!isConnected()) return;
+  readout("devOut", "Settings loaded from sensor.", "ok");
+  readout("wifiOut", "");
+  readout("schedOut", "");
+  readout("bldOut", "");
+  readout("edsOut", "");
+}
+
+/* ------------------------------------------------------------------ */
+/* Writing settings                                                    */
+/* ------------------------------------------------------------------ */
+function validNumber(inputId, limit) {
+  const raw = $(inputId).value.trim();
+  if (raw === "") return { ok: false, msg: limit.label + " is required." };
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < limit.min || n > limit.max) {
+    return { ok: false, msg: `${limit.label} must be a whole number between ${limit.min} and ${limit.max}.` };
+  }
+  return { ok: true, value: n };
+}
+
+async function withButton(btn, fn) {
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Working...";
+  try {
+    await fn();
+  } catch (err) {
+    log("er", err.message || String(err));
+    toast(err.message || "Something went wrong", true);
+  } finally {
+    btn.textContent = label;
+    btn.disabled = false;
+  }
+}
+
+async function saveWifi() {
+  const ssid = $("ssid").value;
+  const psk = $("psk").value;
+  if (!ssid) { readout("wifiOut", "Enter a network name first.", "err"); return; }
+  if (ssid.length > 32) { readout("wifiOut", "Network name must be 32 characters or fewer.", "err"); return; }
+  if (psk.length > 64) { readout("wifiOut", "Password must be 64 characters or fewer.", "err"); return; }
+
+  readout("wifiOut", "Saving...");
+  const a = await send("s|" + ssid);
+  if (!a.ok) { readout("wifiOut", "The sensor rejected the network name.", "err"); return; }
+
+  if (psk.length) {
+    const b = await send("p|" + psk, { redact: true });
+    if (!b.ok) { readout("wifiOut", "The sensor rejected the password.", "err"); return; }
+  }
+  readout("wifiOut", "Wi-Fi credentials saved.", "ok");
+  toast("Wi-Fi saved");
+}
+
+async function testWifi() {
+  readout("wifiOut", "Connecting to Wi-Fi - this can take up to 30 seconds...");
+  const r = await send("c|1", { timeoutMs: 45000 });
+  if (r.ok) {
+    readout("wifiOut", "Connected. The credentials work.", "ok");
+    toast("Wi-Fi connected");
+  } else {
+    readout("wifiOut", "Couldn't join that network. Check the name and password, then save again.", "err");
+    toast("Wi-Fi connection failed", true);
+  }
+}
+
+async function saveSchedule() {
+  const pf = validNumber("pubFreq", LIMITS.pubFreq);
+  if (!pf.ok) { readout("schedOut", pf.msg, "err"); return; }
+  const emi = validNumber("engInterval", LIMITS.engInterval);
+  if (!emi.ok) { readout("schedOut", emi.msg, "err"); return; }
+
+  readout("schedOut", "Saving...");
+  if (!(await send("f|" + pf.value)).ok) {
+    readout("schedOut", "The sensor rejected the upload interval.", "err"); return;
+  }
+  if (!(await send("m|" + emi.value)).ok) {
+    readout("schedOut", "The sensor rejected the engine monitor interval.", "err"); return;
+  }
+  if (!(await send("u|" + ($("pfu").checked ? "1" : "0"))).ok) {
+    readout("schedOut", "The sensor rejected the post-flight upload setting.", "err"); return;
+  }
+  readout("schedOut", "Schedule saved.", "ok");
+  toast("Schedule saved");
+}
+
+async function saveBld() {
+  const v = validNumber("bld", LIMITS.bld);
+  if (!v.ok) { readout("bldOut", v.msg, "err"); return; }
+  readout("bldOut", "Saving...");
+  const r = await send("b|" + v.value);
+  if (r.ok) { readout("bldOut", "Bluetooth window saved.", "ok"); toast("Saved"); }
+  else      { readout("bldOut", "The sensor rejected that value.", "err"); }
+}
+
+async function saveEds() {
+  const v = validNumber("eds", LIMITS.eds);
+  if (!v.ok) { readout("edsOut", v.msg, "err"); return; }
+  readout("edsOut", "Saving...");
+  const r = await send("d|" + v.value);
+  if (r.ok) { readout("edsOut", "Detection samples saved.", "ok"); toast("Saved"); }
+  else      { readout("edsOut", "The sensor rejected that value.", "err"); }
+}
+
+/* Commands below reboot the device before the firmware can send an ACK. */
+async function uploadNow() {
+  if (!confirm("Upload now?\n\nThe sensor will restart and send its stored data over Wi-Fi.")) return;
+  await send("x|1", { expectReply: false });
+  readout("devOut", "Upload queued. The sensor is restarting.", "ok");
+  showRebootNotice();
+}
+
+async function checkForUpdate() {
+  if (!confirm("Check for a firmware update?\n\nThe sensor will restart, connect to Wi-Fi, and install a newer version if one is available. Its LEDs stay white while an update downloads - do not unplug it.")) return;
+  await send("o|1", { expectReply: false });
+  readout("devOut", "Update check queued. The sensor is restarting.", "ok");
+  showRebootNotice();
+}
+
+async function rebootDevice() {
+  if (!confirm("Restart the sensor?")) return;
+  await send("r|1", { expectReply: false });
+  readout("devOut", "Restarting...", "ok");
+  showRebootNotice();
+}
+
+async function factoryReset() {
+  if (!confirm("Factory reset?\n\nThis erases the Wi-Fi credentials and all settings, then restarts the sensor. This cannot be undone.")) return;
+  await send("v|1", { expectReply: false });
+  readout("devOut", "Factory reset sent. The sensor is erasing settings and restarting.", "ok");
+  showRebootNotice();
+}
+
+/* ------------------------------------------------------------------ */
+/* Friendly text for the upload interval                               */
+/* ------------------------------------------------------------------ */
+function describePubFreq() {
+  const n = Number($("pubFreq").value);
+  const base = "How often the sensor wakes to upload data. 1-336 hours.";
+  let extra = "";
+  if (Number.isInteger(n) && n >= LIMITS.pubFreq.min && n <= LIMITS.pubFreq.max) {
+    if (n === 1) extra = "Every hour.";
+    else if (n < 24) extra = `About ${Math.round(24 / n)} times a day.`;
+    else if (n === 24) extra = "Once a day.";
+    else if (n === 168) extra = "Once a week.";
+    else if (n % 24 === 0) extra = `Every ${n / 24} days.`;
+    else extra = `Every ${(n / 24).toFixed(1)} days.`;
+  }
+  $("pubFreqDesc").textContent = extra ? base + " " + extra : base;
+}
+
+/* ------------------------------------------------------------------ */
+/* Wire-up                                                             */
+/* ------------------------------------------------------------------ */
+function init() {
+  if (!navigator.bluetooth) {
+    $("unsupported").hidden = false;
+    $("btnConnect").disabled = true;
+    setStatus("err", "Bluetooth unavailable", "This browser doesn't support Web Bluetooth.");
+    return;
+  }
+
+  $("btnConnect").addEventListener("click", connect);
+  $("btnDisconnect").addEventListener("click", disconnect);
+
+  $("btnShowPsk").addEventListener("click", () => {
+    const el = $("psk");
+    el.type = el.type === "password" ? "text" : "password";
+  });
+
+  $("btnSaveWifi").addEventListener("click", (e) => withButton(e.currentTarget, saveWifi));
+  $("btnTestWifi").addEventListener("click", (e) => withButton(e.currentTarget, testWifi));
+  $("btnSaveSched").addEventListener("click", (e) => withButton(e.currentTarget, saveSchedule));
+  $("btnSaveBld").addEventListener("click", (e) => withButton(e.currentTarget, saveBld));
+  $("btnSaveEds").addEventListener("click", (e) => withButton(e.currentTarget, saveEds));
+  $("btnRefresh").addEventListener("click", (e) => withButton(e.currentTarget, refreshAll));
+  $("btnUploadNow").addEventListener("click", (e) => withButton(e.currentTarget, uploadNow));
+  $("btnOta").addEventListener("click", (e) => withButton(e.currentTarget, checkForUpdate));
+  $("btnReboot").addEventListener("click", (e) => withButton(e.currentTarget, rebootDevice));
+  $("btnFactory").addEventListener("click", (e) => withButton(e.currentTarget, factoryReset));
+
+  $("pubFreq").addEventListener("input", describePubFreq);
+
+  log("t", "Ready. Wake the sensor and click Connect.");
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+build
+managed_components
+
+# Deployment-specific values - never commit these; .example templates are tracked
+main/secretdefs.h

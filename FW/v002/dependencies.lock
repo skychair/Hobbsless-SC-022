@@ -1,0 +1,27 @@
+dependencies:
+  espressif/esp-dsp:
+    component_hash: 42dce32d46ac93dc11f60d368e29a830e9661c7345d794b8a45c343479cae636
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.2'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.7.0
+  idf:
+    source:
+      type: idf
+    version: 5.5.2
+  nimble_peripheral_utils:
+    dependencies: []
+    source:
+      path: /home/nick/esp552/esp-idf/examples/bluetooth/nimble/common/nimble_peripheral_utils
+      type: local
+    version: '*'
+direct_dependencies:
+- espressif/esp-dsp
+- nimble_peripheral_utils
+manifest_hash: 69f4d83af50f2ca5ed6cf5a73208196735ce7f11cacc19af9f7e7c2e97cf7d3c
+target: esp32s3
+version: 2.0.0
